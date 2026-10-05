@@ -106,7 +106,6 @@ class YM_AutoPageMetadataProvider(BaseMetadataProvider):
     # 엔진이 자동으로 로드된다 (카테고리 탭을 매번 들르지 않아도 됨).
     home_widget = {
         "title": "자동 페이지 넘김",
-        "subtitle": "뷰어 자동 넘김",
         "icon": "fa-solid fa-stopwatch",
         "order": 90,
         "limit": 1,

@@ -1,25 +1,14 @@
 :host{display:block}
-.card{padding:14px 16px;border-radius:10px;background:var(--app-bg-card,#1f2430);color:var(--app-text-primary,#eef0f4);border:1px solid var(--app-border,rgba(255,255,255,.12));font-family:inherit}
+.wrap{color:var(--app-text-primary,#eef0f4);font-family:inherit}
+.wrap.is-min{display:none}
 .row{display:flex;align-items:center;gap:8px}
-.title{font-weight:700;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge{font-size:.75rem;padding:2px 8px;border-radius:999px;border:1px solid var(--app-border,rgba(255,255,255,.2));color:var(--app-text-muted,#9aa3b2);white-space:nowrap}
+.badge{flex:none;font-size:.75rem;padding:2px 8px;border-radius:999px;border:1px solid var(--app-border,rgba(255,255,255,.2));color:var(--app-text-muted,#9aa3b2)}
 .badge.on{background:var(--app-accent,#8b7cf6);border-color:var(--app-accent,#8b7cf6);color:#fff}
-.mini-sec{display:none;font-size:.8rem;color:var(--app-text-muted,#9aa3b2);font-variant-numeric:tabular-nums}
-.fold{width:24px;height:24px;flex:none;border:none;border-radius:50%;background:transparent;color:var(--app-text-muted,#9aa3b2);font:inherit;font-size:.9rem;cursor:pointer;transition:transform .15s}
-.fold:hover{background:var(--app-bg-card-hover,rgba(255,255,255,.08));color:var(--app-text-primary,#eef0f4)}
-.hint{margin:6px 0 12px;font-size:.85rem;color:var(--app-text-muted,#9aa3b2)}
-.ctl{display:flex;align-items:center;gap:8px}
+.hint{flex:1;font-size:.85rem;color:var(--app-text-muted,#9aa3b2)}
+.fold{flex:none;width:24px;height:24px;border:none;border-radius:50%;background:transparent;color:var(--app-text-muted,#9aa3b2);font:inherit;cursor:pointer}
+.fold[hidden]{display:none}
+.ctl{display:flex;align-items:center;gap:8px;margin-top:10px}
 .ctl button{width:32px;height:32px;border-radius:50%;border:1px solid var(--app-border,rgba(255,255,255,.2));background:transparent;color:inherit;font:inherit;font-size:1.1rem;cursor:pointer}
-.ctl button:hover{background:var(--app-bg-card-hover,rgba(255,255,255,.08))}
+.ctl button:hover,.fold:hover{background:var(--app-bg-card-hover,rgba(255,255,255,.08))}
 .sec{min-width:56px;text-align:center;font-size:1.25rem;font-weight:700;font-variant-numeric:tabular-nums}
 button:focus-visible{outline:2px solid var(--app-accent,#8b7cf6);outline-offset:2px}
-
-/* 접힌 상태: 한 줄짜리 얇은 띠 */
-.card.is-min{padding:4px 6px 4px 12px;border-radius:999px;opacity:.75}
-.card.is-min:hover{opacity:1}
-.card.is-min .title{font-size:.8rem;font-weight:600}
-.card.is-min .badge{display:none}
-.card.is-min .mini-sec{display:inline}
-.card.is-min .body{display:none}
-.card.is-min .fold{transform:rotate(180deg)}
-@media (prefers-reduced-motion:reduce){.fold{transition:none}}
