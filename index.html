@@ -1,0 +1,56 @@
+<div class="ym-ap-tab">
+  <header class="ym-ap-head">
+    <h2>자동 페이지 넘김</h2>
+    <p class="ym-ap-lead">뷰어를 연 뒤 <kbd class="ym-ap-hotkey">Alt+A</kbd> 를 누르거나 화면 구석의 ▶ 버튼을 누르면, 정한 시간마다 다음 페이지로 넘어갑니다.</p>
+    <p class="ym-ap-state" data-role="state">엔진을 불러오는 중…</p>
+  </header>
+
+  <section class="ym-ap-panel" aria-labelledby="ym-ap-interval-title">
+    <h3 id="ym-ap-interval-title">넘김 간격</h3>
+    <div class="ym-ap-interval">
+      <input type="range" min="1" max="120" step="1" data-role="range" aria-label="넘김 간격(초)">
+      <label class="ym-ap-num">
+        <input type="number" min="1" max="600" step="1" data-role="seconds" aria-label="넘김 간격(초)">
+        <span>초</span>
+      </label>
+    </div>
+    <div class="ym-ap-presets" data-role="presets">
+      <button type="button" data-sec="5">5초</button>
+      <button type="button" data-sec="10">10초</button>
+      <button type="button" data-sec="20">20초</button>
+      <button type="button" data-sec="30">30초</button>
+      <button type="button" data-sec="60">1분</button>
+    </div>
+  </section>
+
+  <section class="ym-ap-panel" aria-labelledby="ym-ap-method-title">
+    <h3 id="ym-ap-method-title">넘기는 방법</h3>
+    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="key"> 키보드 키 보내기 <small>만화·EPUB·TXT 대부분의 페이지형 뷰어</small></label>
+    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="scroll"> 화면 높이만큼 스크롤 <small>웹툰처럼 세로로 이어지는 뷰어</small></label>
+    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="button"> '다음' 버튼 클릭 <small>관리자가 버튼 선택자를 지정한 경우</small></label>
+
+    <label class="ym-ap-field" data-role="key-wrap">
+      <span>보낼 키</span>
+      <select data-role="key">
+        <option value="ArrowRight">→ 왼쪽에서 오른쪽으로 읽기</option>
+        <option value="ArrowLeft">← 오른쪽에서 왼쪽으로 읽기 (일본식 만화)</option>
+        <option value="ArrowDown">↓</option>
+        <option value="PageDown">Page Down</option>
+        <option value="Space">Space</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="ym-ap-panel" aria-labelledby="ym-ap-opt-title">
+    <h3 id="ym-ap-opt-title">동작</h3>
+    <label class="ym-ap-check"><input type="checkbox" data-role="resetOnInput"> 직접 넘기거나 화면을 만지면 카운트다운을 처음부터 다시 셉니다</label>
+    <label class="ym-ap-check"><input type="checkbox" data-role="stopAtEnd"> 마지막 페이지에 닿으면 멈춥니다</label>
+  </section>
+
+  <footer class="ym-ap-foot">
+    <p data-role="saved" class="ym-ap-saved" aria-live="polite"></p>
+    <button type="button" class="ym-ap-reset" data-role="reset">관리자 기본값으로 되돌리기</button>
+  </footer>
+
+  <p class="ym-ap-note">이 설정은 지금 쓰는 기기(브라우저)에만 저장됩니다. 자동 넘김 기능은 이 화면이나 홈 화면 위젯이 한 번 열린 뒤부터 동작하니, 앱을 새로고침했다면 이 화면을 한 번 들렀다가 뷰어를 여세요. 홈 화면 플러그인 배치 모드에서 "자동 페이지 넘김" 위젯을 추가해 두면 이 과정이 필요 없습니다.</p>
+</div>
