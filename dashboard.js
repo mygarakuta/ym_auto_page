@@ -1,7 +1,23 @@
 /* ym_auto_page / dashboard.js - 홈 위젯: 앱을 열 때 엔진을 자동으로 로드 + 간단 조절
  * 코어가 function(pluginId, shadowRoot, items) 형태로 실행한다. */
 var PLUGIN_ID = (typeof pluginId !== 'undefined' && pluginId) || 'ym_auto_page';
+var WIDGET_KEY = 'ym_auto_page_widget';
 var $ = function (role) { return shadowRoot.querySelector('[data-role="' + role + '"]'); };
+
+function isWidgetMin() {
+  try { return !!(JSON.parse(localStorage.getItem(WIDGET_KEY) || '{}') || {}).minimized; } catch (e) { return false; }
+}
+function setWidgetMin(v) {
+  try { localStorage.setItem(WIDGET_KEY, JSON.stringify({ minimized: !!v })); } catch (e) { /* ignore */ }
+  applyMin(!!v);
+}
+function applyMin(v) {
+  $('card').classList.toggle('is-min', v);
+  $('fold').setAttribute('aria-label', v ? '펼치기' : '작게 접기');
+  $('fold').title = v ? '펼치기' : '작게 접기';
+}
+applyMin(isWidgetMin());
+$('fold').addEventListener('click', function () { setWidgetMin(!isWidgetMin()); });
 
 function loadEngine() {
   if (window.YMAutoPage) { return Promise.resolve(window.YMAutoPage); }
@@ -30,6 +46,7 @@ loadEngine().then(function (ap) {
   function paint() {
     var st = ap.getStatus();
     $('sec').textContent = st.prefs.seconds + '초';
+    $('mini-sec').textContent = (st.running ? '켜짐 · ' : '') + st.prefs.seconds + '초';
     $('badge').textContent = st.running ? '켜짐' : '대기';
     $('badge').classList.toggle('on', st.running);
     $('hint').textContent = '뷰어를 연 뒤 ' + (ap.getConfig().hotkey || 'Alt+A') + ' 로 시작/정지합니다.';
@@ -40,5 +57,6 @@ loadEngine().then(function (ap) {
   paint();
 }).catch(function (err) {
   $('badge').textContent = '오류';
+  $('mini-sec').textContent = '오류';
   $('hint').textContent = '엔진을 불러오지 못했습니다: ' + err.message;
 });

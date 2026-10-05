@@ -8,7 +8,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   if (window.YMAutoPage && window.YMAutoPage.version) { return; }
 
   cfg = cfg || {};
@@ -66,6 +66,19 @@
     turns: 0
   };
   var listeners = [];
+
+  // 조작 버튼 최소화 상태 (이 기기에만 저장)
+  var UI_KEY = 'ym_auto_page_ui';
+  function loadUiState() {
+    try { return JSON.parse(localStorage.getItem(UI_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  var minimized = !!loadUiState().minimized;
+  function saveMinimized(v) {
+    minimized = !!v;
+    var u = loadUiState();
+    u.minimized = minimized;
+    try { localStorage.setItem(UI_KEY, JSON.stringify(u)); } catch (e) { /* ignore */ }
+  }
 
   function emit() {
     var snap = api.getStatus();
@@ -306,6 +319,13 @@
       '#ym-ap-root.pos-top-left{left:16px;top:calc(16px + env(safe-area-inset-top,0px))}',
       '#ym-ap-root.pos-top-right{right:16px;top:calc(16px + env(safe-area-inset-top,0px))}',
       '#ym-ap-root button{all:unset;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border-radius:50%}',
+      '#ym-ap-root .ym-ap-min{width:24px;height:24px;font-size:11px;opacity:.7}',
+      '#ym-ap-root .ym-ap-dot{display:none}',
+      '#ym-ap-root.is-min{padding:0;gap:0;opacity:.3;box-shadow:0 2px 8px rgba(0,0,0,.3)}',
+      '#ym-ap-root.is-min>*{display:none}',
+      '#ym-ap-root.is-min>.ym-ap-dot{display:grid;width:22px;height:22px;font:700 10px/1 var(--app-font,system-ui,sans-serif);font-variant-numeric:tabular-nums}',
+      '#ym-ap-root.is-min.is-running{opacity:.85}',
+      '#ym-ap-root.is-min.is-running>.ym-ap-dot{background:var(--app-accent,#8b7cf6);color:#fff}',
       '#ym-ap-root button:hover{background:var(--app-bg-card-hover,rgba(255,255,255,.08))}',
       '#ym-ap-root button:focus-visible{outline:2px solid var(--app-accent,#8b7cf6);outline-offset:1px}',
       '#ym-ap-root .ym-ap-play{background:var(--app-accent,#8b7cf6);color:#fff}',
@@ -357,11 +377,19 @@
     ui.sec.className = 'ym-ap-sec';
     ui.sec.setAttribute('aria-live', 'polite');
     ui.plus = makeButton('ym-ap-plus', '간격 늘리기', 'fa-solid fa-plus', '+');
+    ui.min = makeButton('ym-ap-min', '작게 접기', 'fa-solid fa-chevron-down', '–');
+    ui.dot = document.createElement('button');
+    ui.dot.type = 'button';
+    ui.dot.className = 'ym-ap-dot';
+    ui.dot.setAttribute('aria-label', '자동 넘김 조작 버튼 펼치기');
+    ui.dot.title = '펼치기';
 
     root.appendChild(ui.play);
     root.appendChild(ui.minus);
     root.appendChild(ui.sec);
     root.appendChild(ui.plus);
+    root.appendChild(ui.min);
+    root.appendChild(ui.dot);
 
     var bar = document.createElement('div');
     bar.id = 'ym-ap-bar';
@@ -381,10 +409,12 @@
     ui.play.addEventListener('click', function () { api.toggle(); ui.play.blur(); });
     ui.minus.addEventListener('click', function () { api.setPrefs({ seconds: stepSeconds(prefs.seconds, -1) }); ui.minus.blur(); });
     ui.plus.addEventListener('click', function () { api.setPrefs({ seconds: stepSeconds(prefs.seconds, +1) }); ui.plus.blur(); });
+    ui.min.addEventListener('click', function () { api.setMinimized(true); ui.min.blur(); });
+    ui.dot.addEventListener('click', function () { api.setMinimized(false); ui.dot.blur(); });
 
     // 아이콘 폰트(Font Awesome)가 없으면 글자로 대체
     setTimeout(function () {
-      [ui.play, ui.minus, ui.plus].forEach(function (b) {
+      [ui.play, ui.minus, ui.plus, ui.min].forEach(function (b) {
         var i = b.querySelector('i');
         if (i && i.getBoundingClientRect().width === 0) { i.remove(); b.textContent = b.dataset.fallback; }
       });
@@ -411,6 +441,10 @@
     var showFloat = cfg.showFloating !== false && (!!state.viewerEl || state.running);
     ui.root.hidden = !showFloat;
     ui.root.classList.toggle('is-running', state.running);
+    ui.root.classList.toggle('is-min', minimized);
+    // 최소화 상태: 멈춰 있으면 ⏱, 돌고 있으면 남은 초만 표시
+    ui.dot.textContent = state.running ? String(Math.max(0, Math.ceil(state.remaining / 1000))) : '⏱';
+    ui.dot.title = state.running ? '자동 넘김 중 - 눌러서 펼치기' : '자동 넘김 - 눌러서 펼치기';
     setPlayIcon(state.running);
     if (state.running) {
       var left = Math.max(0, Math.ceil(state.remaining / 1000));
@@ -524,12 +558,15 @@
       emit();
       return api.getPrefs();
     },
+    isMinimized: function () { return minimized; },
+    setMinimized: function (v) { saveMinimized(v); render(); emit(); },
     getStatus: function () {
       return {
         running: state.running,
         viewerDetected: !!state.viewerEl,
         remainingSec: state.running ? Math.max(0, Math.ceil(state.remaining / 1000)) : null,
         turns: state.turns,
+        minimized: minimized,
         progress: state.progress ? JSON.parse(JSON.stringify(state.progress)) : null,
         prefs: api.getPrefs()
       };
