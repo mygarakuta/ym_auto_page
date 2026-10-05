@@ -53,17 +53,26 @@ function step(cur, dir) {
   return Math.max(1, Math.min(600, cur + dir * s));
 }
 
+function speedStep(cur, dir) {
+  var s = dir > 0 ? (cur < 30 ? 5 : (cur < 100 ? 10 : (cur < 300 ? 20 : 50)))
+                  : (cur <= 30 ? 5 : (cur <= 100 ? 10 : (cur <= 300 ? 20 : 50)));
+  return Math.max(10, Math.min(600, cur + dir * s));
+}
+
 loadEngine().then(function (ap) {
   function paint() {
     var st = ap.getStatus();
     $('sec').textContent = st.prefs.seconds + '초';
-    $('badge').textContent = st.running ? '켜짐' : '대기';
+    $('speed').textContent = st.prefs.scrollSpeed;
+    $('badge').textContent = st.running ? (st.mode === 'scroll' ? '스크롤 중' : '넘김 중') : '대기';
     $('badge').classList.toggle('on', st.running);
     $('hint').textContent = '뷰어를 연 뒤 ' + (ap.getConfig().hotkey || 'Alt+A') + ' 로 시작/정지합니다.';
-    $('mini').textContent = st.prefs.seconds + '초';
+    $('mini').textContent = st.prefs.seconds + '초 · ↓' + st.prefs.scrollSpeed + 'px/초';
   }
   $('minus').addEventListener('click', function () { ap.setPrefs({ seconds: step(ap.getPrefs().seconds, -1) }); });
   $('plus').addEventListener('click', function () { ap.setPrefs({ seconds: step(ap.getPrefs().seconds, +1) }); });
+  $('slower').addEventListener('click', function () { ap.setPrefs({ scrollSpeed: speedStep(ap.getPrefs().scrollSpeed, -1) }); });
+  $('faster').addEventListener('click', function () { ap.setPrefs({ scrollSpeed: speedStep(ap.getPrefs().scrollSpeed, +1) }); });
   var off = ap.onChange(function () { if (shadowRoot.host && shadowRoot.host.isConnected) { paint(); } else { off(); } });
   paint();
 }).catch(function (err) {

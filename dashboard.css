@@ -6,10 +6,12 @@
 .hint{flex:1;min-width:0;font-size:.85rem;color:var(--app-text-muted,#9aa3b2)}
 .mini{display:none;flex:1;font-size:.85rem;font-weight:700;font-variant-numeric:tabular-nums}
 .fold{flex:none;width:28px;height:28px;border:none;border-radius:50%;background:transparent;color:var(--app-text-muted,#9aa3b2);font:inherit;font-size:1rem;cursor:pointer}
-.ctl{display:flex;align-items:center;gap:8px;margin-top:10px}
-.ctl button{width:32px;height:32px;border-radius:50%;border:1px solid var(--app-border,rgba(255,255,255,.2));background:transparent;color:inherit;font:inherit;font-size:1.1rem;cursor:pointer}
+.ctl{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:10px}
+.grp{display:flex;align-items:center;gap:4px}
+.lbl{font-size:.75rem;color:var(--app-text-muted,#9aa3b2);margin-right:2px;white-space:nowrap}
+.ctl button{width:28px;height:28px;border-radius:50%;border:1px solid var(--app-border,rgba(255,255,255,.2));background:transparent;color:inherit;font:inherit;font-size:1.1rem;cursor:pointer}
 .ctl button:hover,.fold:hover{background:var(--app-bg-card-hover,rgba(255,255,255,.08));color:var(--app-text-primary,#eef0f4)}
-.sec{min-width:56px;text-align:center;font-size:1.25rem;font-weight:700;font-variant-numeric:tabular-nums}
+.sec{min-width:44px;text-align:center;font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums}
 button:focus-visible{outline:2px solid var(--app-accent,#8b7cf6);outline-offset:2px}
 
 /* 접힌 상태: [대기] 5초 ▸ 한 줄 */

@@ -28,7 +28,7 @@ _VERSION_FILE = os.path.join(_PLUGIN_DIR, "VERSION")
 # 설정은 세션(DB)과 무관하게 한 벌만 쓴다 - 엔진 로더가 현재 세션을 알 방법이 없어서
 _CONFIG_DB = "general"
 
-_METHODS = ("key", "button", "scroll")
+_METHODS = ("auto", "key", "button", "scroll")
 _KEYS = ("ArrowRight", "ArrowLeft", "ArrowDown", "PageDown", "Space")
 _POSITIONS = ("bottom-left", "bottom-right", "top-left", "top-right")
 
@@ -69,10 +69,12 @@ class YM_AutoPageMetadataProvider(BaseMetadataProvider):
 
     config_schema = [
         {"key": "DEFAULT_SECONDS", "label": "기본 넘김 간격(초, 1~600)", "type": "number", "default": 10},
-        {"key": "DEFAULT_METHOD", "label": "기본 넘김 방식", "type": "select", "default": "key", "options": [
-            {"value": "key", "label": "키보드 키 보내기 (대부분의 뷰어)"},
-            {"value": "button", "label": "'다음' 버튼 클릭 (아래 선택자 필요)"},
-            {"value": "scroll", "label": "화면 높이만큼 스크롤 (웹툰/스크롤 뷰어)"},
+        {"key": "DEFAULT_SCROLL_SPEED", "label": "세로 스크롤 속도(px/초, 10~600)", "type": "number", "default": 60},
+        {"key": "DEFAULT_METHOD", "label": "기본 넘김 방식", "type": "select", "default": "auto", "options": [
+            {"value": "auto", "label": "자동 (좌우 뷰어는 초 단위 넘김, 상하 뷰어는 서서히 스크롤)"},
+            {"value": "key", "label": "항상 키보드 키로 넘기기"},
+            {"value": "button", "label": "항상 '다음' 버튼 클릭 (아래 선택자 필요)"},
+            {"value": "scroll", "label": "항상 아래로 서서히 스크롤"},
         ]},
         {"key": "DEFAULT_KEY", "label": "보낼 키", "type": "select", "default": "ArrowRight", "options": [
             {"value": "ArrowRight", "label": "→ (왼쪽에서 오른쪽으로 읽기)"},
@@ -126,7 +128,8 @@ class YM_AutoPageMetadataProvider(BaseMetadataProvider):
         cfg = self.get_plugin_config(_CONFIG_DB, default={}) or {}
         return {
             "seconds": _to_int(cfg.get("DEFAULT_SECONDS"), 10, 1, 600),
-            "method": _pick(cfg.get("DEFAULT_METHOD"), _METHODS, "key"),
+            "scrollSpeed": _to_int(cfg.get("DEFAULT_SCROLL_SPEED"), 60, 10, 600),
+            "method": _pick(cfg.get("DEFAULT_METHOD"), _METHODS, "auto"),
             "key": _pick(cfg.get("DEFAULT_KEY"), _KEYS, "ArrowRight"),
             "nextButtonSelector": str(cfg.get("NEXT_BUTTON_SELECTOR") or "").strip(),
             "viewerSelector": str(cfg.get("VIEWER_SELECTOR") or "").strip(),

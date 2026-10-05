@@ -27,3 +27,5 @@
 .ym-ap-reset:hover{background:var(--app-bg-card-hover)}
 .ym-ap-tab button:focus-visible,.ym-ap-tab input:focus-visible,.ym-ap-tab select:focus-visible{outline:2px solid var(--app-accent);outline-offset:2px}
 .ym-ap-note{margin-top:24px;color:var(--app-text-muted);font-size:.8rem}
+.ym-ap-panel[hidden]{display:none}
+.ym-ap-sub{margin:10px 0 0;color:var(--app-text-muted);font-size:.8rem}

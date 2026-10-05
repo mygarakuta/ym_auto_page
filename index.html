@@ -1,12 +1,20 @@
 <div class="ym-ap-tab">
   <header class="ym-ap-head">
     <h2>자동 페이지 넘김</h2>
-    <p class="ym-ap-lead">뷰어를 연 뒤 <kbd class="ym-ap-hotkey">Alt+A</kbd> 를 누르거나 화면 구석의 ▶ 버튼을 누르면, 정한 시간마다 다음 페이지로 넘어갑니다.</p>
+    <p class="ym-ap-lead">뷰어를 연 뒤 <kbd class="ym-ap-hotkey">Alt+A</kbd> 를 누르거나 화면 구석의 ▶ 버튼을 누르면, 좌우 뷰어는 정한 시간마다 다음 페이지로 넘어가고, 상하 뷰어는 아래로 서서히 스크롤됩니다.</p>
     <p class="ym-ap-state" data-role="state">엔진을 불러오는 중…</p>
   </header>
 
-  <section class="ym-ap-panel" aria-labelledby="ym-ap-interval-title">
-    <h3 id="ym-ap-interval-title">넘김 간격</h3>
+  <section class="ym-ap-panel" aria-labelledby="ym-ap-method-title">
+    <h3 id="ym-ap-method-title">넘기는 방법</h3>
+    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="auto"> 자동 (추천) <small>좌우로 넘기는 뷰어는 정한 초마다 다음 페이지로, 위아래로 이어지는 뷰어(웹툰 등)는 아래로 서서히 스크롤합니다</small></label>
+    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="key"> 항상 키보드 키로 넘기기</label>
+    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="scroll"> 항상 아래로 서서히 스크롤</label>
+    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="button"> 항상 '다음' 버튼 클릭 <small>관리자가 버튼 선택자를 지정한 경우</small></label>
+  </section>
+
+  <section class="ym-ap-panel" aria-labelledby="ym-ap-interval-title" data-role="page-panel">
+    <h3 id="ym-ap-interval-title">좌우 넘김 간격</h3>
     <div class="ym-ap-interval">
       <input type="range" min="1" max="120" step="1" data-role="range" aria-label="넘김 간격(초)">
       <label class="ym-ap-num">
@@ -14,21 +22,13 @@
         <span>초</span>
       </label>
     </div>
-    <div class="ym-ap-presets" data-role="presets">
+    <div class="ym-ap-presets">
       <button type="button" data-sec="5">5초</button>
       <button type="button" data-sec="10">10초</button>
       <button type="button" data-sec="20">20초</button>
       <button type="button" data-sec="30">30초</button>
       <button type="button" data-sec="60">1분</button>
     </div>
-  </section>
-
-  <section class="ym-ap-panel" aria-labelledby="ym-ap-method-title">
-    <h3 id="ym-ap-method-title">넘기는 방법</h3>
-    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="key"> 키보드 키 보내기 <small>만화·EPUB·TXT 대부분의 페이지형 뷰어</small></label>
-    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="scroll"> 화면 높이만큼 스크롤 <small>웹툰처럼 세로로 이어지는 뷰어</small></label>
-    <label class="ym-ap-radio"><input type="radio" name="ym-ap-method" value="button"> '다음' 버튼 클릭 <small>관리자가 버튼 선택자를 지정한 경우</small></label>
-
     <label class="ym-ap-field" data-role="key-wrap">
       <span>보낼 키</span>
       <select data-role="key">
@@ -41,10 +41,28 @@
     </label>
   </section>
 
+  <section class="ym-ap-panel" aria-labelledby="ym-ap-speed-title" data-role="scroll-panel">
+    <h3 id="ym-ap-speed-title">상하 스크롤 속도</h3>
+    <div class="ym-ap-interval">
+      <input type="range" min="10" max="300" step="5" data-role="speed-range" aria-label="스크롤 속도(px/초)">
+      <label class="ym-ap-num">
+        <input type="number" min="10" max="600" step="5" data-role="speed" aria-label="스크롤 속도(px/초)">
+        <span>px/초</span>
+      </label>
+    </div>
+    <div class="ym-ap-presets">
+      <button type="button" data-speed="30">아주 느리게</button>
+      <button type="button" data-speed="60">느리게</button>
+      <button type="button" data-speed="100">보통</button>
+      <button type="button" data-speed="160">빠르게</button>
+    </div>
+    <p class="ym-ap-sub">화면을 만지거나 휠을 굴리면 2초 쉬었다가 그 위치부터 다시 내려갑니다.</p>
+  </section>
+
   <section class="ym-ap-panel" aria-labelledby="ym-ap-opt-title">
     <h3 id="ym-ap-opt-title">동작</h3>
-    <label class="ym-ap-check"><input type="checkbox" data-role="resetOnInput"> 직접 넘기거나 화면을 만지면 카운트다운을 처음부터 다시 셉니다</label>
-    <label class="ym-ap-check"><input type="checkbox" data-role="stopAtEnd"> 마지막 페이지에 닿으면 멈춥니다</label>
+    <label class="ym-ap-check"><input type="checkbox" data-role="resetOnInput"> 직접 넘기거나 화면을 만지면 카운트다운을 다시 세고, 스크롤은 잠깐 멈춥니다</label>
+    <label class="ym-ap-check"><input type="checkbox" data-role="stopAtEnd"> 마지막 페이지(스크롤은 맨 아래)에 닿으면 멈춥니다</label>
   </section>
 
   <footer class="ym-ap-foot">

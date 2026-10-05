@@ -44,7 +44,14 @@
     });
     root.querySelectorAll('input[name="ym-ap-method"]').forEach(function (r) { r.checked = r.value === p.method; });
     $('key').value = p.key;
-    $('key-wrap').hidden = p.method !== 'key';
+    $('key-wrap').hidden = p.method === 'button';
+    $('page-panel').hidden = p.method === 'scroll';
+    $('scroll-panel').hidden = p.method === 'key' || p.method === 'button';
+    $('speed').value = p.scrollSpeed;
+    $('speed-range').value = Math.min(300, p.scrollSpeed);
+    root.querySelectorAll('[data-speed]').forEach(function (b) {
+      b.classList.toggle('is-active', Number(b.dataset.speed) === p.scrollSpeed);
+    });
     $('resetOnInput').checked = !!p.resetOnInput;
     $('stopAtEnd').checked = !!p.stopAtEnd;
 
@@ -55,7 +62,9 @@
     var st = ap.getStatus();
     stateEl.classList.remove('is-error');
     stateEl.textContent = st.running
-      ? '지금 자동 넘김이 켜져 있습니다 (' + p.seconds + '초 간격).'
+      ? (st.mode === 'scroll'
+        ? '지금 자동 스크롤이 켜져 있습니다 (' + p.scrollSpeed + 'px/초).'
+        : '지금 자동 넘김이 켜져 있습니다 (' + p.seconds + '초 간격).')
       : '준비됐습니다. 뷰어를 열고 ' + (cfg.hotkey || 'Alt+A') + ' 를 누르세요.';
   }
 
@@ -70,6 +79,12 @@
     });
     root.querySelectorAll('input[name="ym-ap-method"]').forEach(function (r) {
       r.addEventListener('change', function () { if (r.checked) { save({ method: r.value }); } });
+    });
+    $('speed-range').addEventListener('input', function () { $('speed').value = this.value; });
+    $('speed-range').addEventListener('change', function () { save({ scrollSpeed: Number(this.value) }); });
+    $('speed').addEventListener('change', function () { save({ scrollSpeed: Number(this.value) }); });
+    root.querySelectorAll('[data-speed]').forEach(function (b) {
+      b.addEventListener('click', function () { save({ scrollSpeed: Number(b.dataset.speed) }); });
     });
     $('key').addEventListener('change', function () { save({ key: this.value }); });
     $('resetOnInput').addEventListener('change', function () { save({ resetOnInput: this.checked }); });

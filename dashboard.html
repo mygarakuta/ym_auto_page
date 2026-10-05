@@ -6,8 +6,17 @@
     <button type="button" class="fold" data-role="fold" aria-label="접기" title="접기" aria-expanded="true">▾</button>
   </div>
   <div class="ctl">
-    <button type="button" data-role="minus" aria-label="간격 줄이기">−</button>
-    <span class="sec" data-role="sec">-</span>
-    <button type="button" data-role="plus" aria-label="간격 늘리기">+</button>
+    <div class="grp" title="좌우 뷰어: 다음 페이지로 넘기는 간격">
+      <span class="lbl">↔ 넘김</span>
+      <button type="button" data-role="minus" aria-label="넘김 간격 줄이기">−</button>
+      <span class="sec" data-role="sec">-</span>
+      <button type="button" data-role="plus" aria-label="넘김 간격 늘리기">+</button>
+    </div>
+    <div class="grp" title="상하 뷰어: 아래로 내려가는 속도">
+      <span class="lbl">↓ 스크롤</span>
+      <button type="button" data-role="slower" aria-label="스크롤 느리게">−</button>
+      <span class="sec" data-role="speed">-</span>
+      <button type="button" data-role="faster" aria-label="스크롤 빠르게">+</button>
+    </div>
   </div>
 </div>

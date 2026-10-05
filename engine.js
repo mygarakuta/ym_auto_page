@@ -8,12 +8,13 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.2.1';
+  var VERSION = '1.3.0';
   if (window.YMAutoPage && window.YMAutoPage.version) { return; }
 
   cfg = cfg || {};
   var LS_KEY = 'ym_auto_page_prefs';
-  var USER_KEYS = ['seconds', 'method', 'key', 'resetOnInput', 'stopAtEnd'];
+  var USER_KEYS = ['seconds', 'scrollSpeed', 'method', 'key', 'resetOnInput', 'stopAtEnd'];
+  var METHODS = ['auto', 'key', 'button', 'scroll'];
   var KEY_INFO = {
     ArrowRight: { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
     ArrowLeft: { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
@@ -33,18 +34,26 @@
     return Math.max(1, Math.min(600, n));
   }
 
+  function clampSpeed(v) {
+    var n = Math.round(Number(v));
+    if (!isFinite(n)) { n = 60; }
+    return Math.max(10, Math.min(600, n));
+  }
+
   function buildPrefs() {
     var user = loadUserPrefs();
     var p = {
       seconds: clampSeconds(cfg.seconds || 10),
-      method: cfg.method || 'key',
+      scrollSpeed: clampSpeed(cfg.scrollSpeed || 60),
+      method: cfg.method || 'auto',
       key: cfg.key || 'ArrowRight',
       resetOnInput: cfg.resetOnInput !== false,
       stopAtEnd: cfg.stopAtEnd !== false
     };
     USER_KEYS.forEach(function (k) { if (user[k] !== undefined && user[k] !== null) { p[k] = user[k]; } });
     p.seconds = clampSeconds(p.seconds);
-    if (['key', 'button', 'scroll'].indexOf(p.method) === -1) { p.method = 'key'; }
+    p.scrollSpeed = clampSpeed(p.scrollSpeed);
+    if (METHODS.indexOf(p.method) === -1) { p.method = 'auto'; }
     if (!KEY_INFO[p.key]) { p.key = 'ArrowRight'; }
     return p;
   }
@@ -63,7 +72,16 @@
     progress: null,      // { bookId, pageIdx, total, at }
     atEnd: false,
     endTurnMark: null,
-    turns: 0
+    turns: 0,
+    mode: null,            // 실행 중 방식: 'page'(좌우, 초 단위 넘김) | 'scroll'(상하, 서서히 스크롤)
+    predictedMode: 'page', // 멈춰 있을 때 조작 버튼에 보여줄 방식
+    scrollEl: null,
+    scrollAcc: 0,
+    rafId: null,
+    pauseUntil: 0,
+    endSince: 0,
+    stuckMs: 0,
+    lastRender: 0
   };
   var listeners = [];
 
@@ -90,7 +108,7 @@
     if (!el || !el.isConnected) { return false; }
     if (el.getClientRects().length === 0) { return false; }
     var cs = getComputedStyle(el);
-    return cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0;
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
   }
 
   function queryVisible(selector) {
@@ -140,8 +158,29 @@
     return best;
   }
 
-  // ------------------------------------------------------------------ 페이지 넘기기
-  // 반환: 'ok' | 'end' | 'fail'
+  // 스크롤할 대상. minRatio: 내용이 화면 몇 배 이상 길어야 "세로 스크롤 뷰어"로 볼지
+  function findScrollTarget(minRatio, allowDocument) {
+    var viewer = state.viewerEl || findViewer();
+    var sc = viewer ? findScrollable(viewer) : null;
+    if (!sc && allowDocument) {
+      var se = document.scrollingElement;
+      if (se && se.scrollHeight > window.innerHeight + 10) { sc = se; }
+    }
+    if (sc && sc.scrollHeight < sc.clientHeight * (minRatio || 1)) { return null; }
+    return sc;
+  }
+
+  // 상하(세로로 길게 이어지는) 뷰어면 'scroll', 좌우(페이지) 뷰어면 'page'
+  function resolveMode() {
+    if (prefs.method === 'scroll') { return 'scroll'; }
+    if (prefs.method === 'key' || prefs.method === 'button') { return 'page'; }
+    // 자동: 화면 높이의 3배 이상 이어지는 스크롤 영역이 있으면 웹툰/스크롤 뷰어로 판단
+    // (페이지형 뷰어에서 그림 한 장이 화면보다 조금 긴 경우는 page로 남긴다)
+    return findScrollTarget(3, false) ? 'scroll' : 'page';
+  }
+
+  // ------------------------------------------------------------------ 페이지 넘기기 (좌우)
+  // 반환: 'ok' | 'fail'
   function turnPage() {
     var viewer = state.viewerEl || findViewer();
 
@@ -149,18 +188,6 @@
       var btn = queryVisible(cfg.nextButtonSelector);
       if (!btn) { return 'fail'; }
       btn.click();
-      return 'ok';
-    }
-
-    if (prefs.method === 'scroll') {
-      var sc = viewer ? findScrollable(viewer) : null;
-      if (!sc && document.scrollingElement && document.scrollingElement.scrollHeight > window.innerHeight + 10) {
-        sc = document.scrollingElement;
-      }
-      if (!sc) { return 'fail'; }
-      if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2) { return 'end'; }
-      var step = Math.max(80, Math.round(sc.clientHeight * 0.9));
-      try { sc.scrollBy({ top: step, behavior: 'smooth' }); } catch (e) { sc.scrollTop += step; }
       return 'ok';
     }
 
@@ -178,12 +205,12 @@
     return 'ok';
   }
 
-  // ------------------------------------------------------------------ 타이머
+  // ------------------------------------------------------------------ 좌우: 초 단위 넘김
   function tick() {
     var now = performance.now();
     var dt = now - state.lastTs;
     state.lastTs = now;
-    if (!state.running) { return; }
+    if (!state.running || state.mode !== 'page') { return; }
     if (document.hidden) { render(); return; }  // 다른 탭을 보는 동안은 멈춤
 
     state.remaining -= dt;
@@ -201,49 +228,131 @@
     }
 
     var result = turnPage();
-    if (result === 'end' && prefs.stopAtEnd) { stop('end'); return; }
     if (result === 'fail') { stop('fail'); return; }
     state.turns += 1;
     state.remaining = prefs.seconds * 1000;
     render();
   }
 
+  // ------------------------------------------------------------------ 상하: 서서히 스크롤
+  function setScrollTop(sc, top) {
+    // 뷰어에 scroll-behavior:smooth가 걸려 있어도 즉시 이동해야 매 프레임 조금씩 내려간다
+    try { sc.scrollTo({ top: top, behavior: 'instant' }); } catch (e) { sc.scrollTop = top; }
+  }
+
+  function scrollFrame(ts) {
+    if (!state.running || state.mode !== 'scroll') { return; }
+    state.rafId = requestAnimationFrame(scrollFrame);
+    var dt = Math.min(100, ts - state.lastTs);  // 탭 전환 뒤 첫 프레임이 크게 튀지 않도록
+    state.lastTs = ts;
+    if (document.hidden || dt <= 0) { return; }
+
+    if (performance.now() < state.pauseUntil) { renderThrottled(ts); return; }  // 사용자가 만진 직후 잠깐 멈춤
+
+    var sc = state.scrollEl;
+    if (!sc || !sc.isConnected) {
+      sc = state.scrollEl = findScrollTarget(prefs.method === 'scroll' ? 1 : 3, prefs.method === 'scroll');
+      if (!sc) { stop('fail'); return; }
+    }
+
+    var atBottom = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2;
+    if (!atBottom) {
+      state.scrollAcc += prefs.scrollSpeed * dt / 1000;
+      if (state.scrollAcc >= 1) {
+        var n = Math.floor(state.scrollAcc);
+        state.scrollAcc -= n;
+        var before = sc.scrollTop;
+        setScrollTop(sc, before + n);
+        state.stuckMs = (Math.abs(sc.scrollTop - before) < 0.5) ? state.stuckMs + dt : 0;
+      }
+    }
+
+    // 끝 판정: 바닥에 닿았거나 더 내려가지 않는 상태가 3초 이어지면 정지
+    // (그 사이 다음 화가 이어 붙거나 이미지가 늦게 로드되면 계속 내려간다)
+    if (atBottom || state.stuckMs > 0) {
+      if (!state.endSince) { state.endSince = ts; }
+      if (prefs.stopAtEnd && ts - state.endSince > 3000) { stop('end'); return; }
+    } else {
+      state.endSince = 0;
+    }
+    renderThrottled(ts);
+  }
+
+  function renderThrottled(ts) {
+    if (ts - state.lastRender < 200) { return; }
+    state.lastRender = ts;
+    render();
+  }
+
+  // ------------------------------------------------------------------ 시작/정지
   function start() {
     if (state.running) { return; }
-    if (prefs.method === 'button' && !cfg.nextButtonSelector) {
+    var mode = resolveMode();
+    if (mode === 'page' && prefs.method === 'button' && !cfg.nextButtonSelector) {
       toast("'다음' 버튼 선택자가 없습니다. 관리자 설정에서 지정하거나 다른 넘김 방식을 고르세요.");
       return;
     }
+    if (mode === 'scroll') {
+      state.scrollEl = findScrollTarget(prefs.method === 'scroll' ? 1 : 3, prefs.method === 'scroll');
+      if (!state.scrollEl) { toast('스크롤할 영역을 찾지 못했습니다.'); return; }
+    }
+
     state.running = true;
-    state.remaining = prefs.seconds * 1000;
-    state.lastTs = performance.now();
+    state.mode = mode;
     state.turns = 0;
     state.endTurnMark = null;
     state.viewerMisses = 0;
     state.sawViewerWhileRunning = !!state.viewerEl;
-    state.tickTimer = setInterval(tick, 100);
-    toast(prefs.seconds + '초마다 다음 페이지로 넘깁니다.');
+    state.lastTs = performance.now();
+    state.pauseUntil = 0;
+    state.endSince = 0;
+    state.stuckMs = 0;
+    state.scrollAcc = 0;
+
+    if (mode === 'scroll') {
+      state.rafId = requestAnimationFrame(scrollFrame);
+      toast('아래로 서서히 스크롤합니다 (' + prefs.scrollSpeed + 'px/초).');
+    } else {
+      state.remaining = prefs.seconds * 1000;
+      state.tickTimer = setInterval(tick, 100);
+      toast(prefs.seconds + '초마다 다음 페이지로 넘깁니다.');
+    }
     render();
     emit();
   }
 
   function stop(reason) {
     if (!state.running) { return; }
+    var mode = state.mode;
     state.running = false;
     clearInterval(state.tickTimer);
     state.tickTimer = null;
+    if (state.rafId) { cancelAnimationFrame(state.rafId); state.rafId = null; }
+    state.mode = null;
+    state.scrollEl = null;
+    var name = mode === 'scroll' ? '자동 스크롤' : '자동 넘김';
     var msg = {
-      end: '마지막 페이지라 자동 넘김을 멈췄습니다.',
-      fail: "넘길 대상을 찾지 못해 멈췄습니다. 설정에서 넘김 방식을 확인하세요.",
-      closed: '뷰어가 닫혀서 자동 넘김을 멈췄습니다.'
-    }[reason] || '자동 넘김을 멈췄습니다.';
+      end: mode === 'scroll' ? '끝까지 내려와서 자동 스크롤을 멈췄습니다.' : '마지막 페이지라 자동 넘김을 멈췄습니다.',
+      fail: mode === 'scroll' ? '스크롤할 영역을 찾지 못해 멈췄습니다.' : '넘길 대상을 찾지 못해 멈췄습니다. 설정에서 넘김 방식을 확인하세요.',
+      closed: '뷰어가 닫혀서 ' + name + '을 멈췄습니다.'
+    }[reason] || name + '을 멈췄습니다.';
     toast(msg);
     render();
     emit();
   }
 
+  // 사용자가 직접 넘기거나 화면을 만졌을 때
   function resetCountdown() {
-    if (state.running) { state.remaining = prefs.seconds * 1000; render(); }
+    if (!state.running) { return; }
+    if (state.mode === 'scroll') {
+      state.pauseUntil = performance.now() + 2000;  // 2초 쉬었다가 그 위치부터 다시 내려감
+      state.scrollAcc = 0;
+      state.endSince = 0;
+      state.stuckMs = 0;
+    } else {
+      state.remaining = prefs.seconds * 1000;
+    }
+    render();
   }
 
   // ------------------------------------------------------------------ 진행률 감지 (읽기 전용)
@@ -407,8 +516,8 @@
     ui.root = root; ui.bar = bar; ui.toast = t;
 
     ui.play.addEventListener('click', function () { api.toggle(); ui.play.blur(); });
-    ui.minus.addEventListener('click', function () { api.setPrefs({ seconds: stepSeconds(prefs.seconds, -1) }); ui.minus.blur(); });
-    ui.plus.addEventListener('click', function () { api.setPrefs({ seconds: stepSeconds(prefs.seconds, +1) }); ui.plus.blur(); });
+    ui.minus.addEventListener('click', function () { adjust(-1); ui.minus.blur(); });
+    ui.plus.addEventListener('click', function () { adjust(+1); ui.plus.blur(); });
     ui.min.addEventListener('click', function () { api.setMinimized(true); ui.min.blur(); });
     ui.dot.addEventListener('click', function () { api.setMinimized(false); ui.dot.blur(); });
 
@@ -421,15 +530,28 @@
     }, 1500);
   }
 
+  function currentMode() { return state.running ? state.mode : state.predictedMode; }
+
+  function adjust(dir) {
+    if (currentMode() === 'scroll') { api.setPrefs({ scrollSpeed: stepSpeed(prefs.scrollSpeed, dir) }); }
+    else { api.setPrefs({ seconds: stepSeconds(prefs.seconds, dir) }); }
+  }
+
+  function stepSpeed(cur, dir) {
+    var step = cur < 30 ? 5 : (cur < 100 ? 10 : (cur < 300 ? 20 : 50));
+    if (dir < 0) { step = cur <= 30 ? 5 : (cur <= 100 ? 10 : (cur <= 300 ? 20 : 50)); }
+    return clampSpeed(cur + dir * step);
+  }
+
   function stepSeconds(cur, dir) {
     var step = cur < 10 ? 1 : (cur < 60 ? 5 : 15);
     if (dir < 0 && cur <= 10 && cur > 1) { step = 1; }
     return clampSeconds(cur + dir * step);
   }
 
-  function setPlayIcon(running) {
+  function setPlayIcon(running, name) {
     var i = ui.play.querySelector('i');
-    var label = (running ? '자동 넘김 정지' : '자동 넘김 시작') + ' (' + (cfg.hotkey || 'Alt+A') + ')';
+    var label = (name || '자동 넘김') + (running ? ' 정지' : ' 시작') + ' (' + (cfg.hotkey || 'Alt+A') + ')';
     ui.play.title = label;
     ui.play.setAttribute('aria-label', label);
     if (i) { i.className = running ? 'fa-solid fa-pause' : 'fa-solid fa-play'; }
@@ -442,11 +564,29 @@
     ui.root.hidden = !showFloat;
     ui.root.classList.toggle('is-running', state.running);
     ui.root.classList.toggle('is-min', minimized);
-    // 최소화 상태: 멈춰 있으면 ⏱, 돌고 있으면 남은 초만 표시
-    ui.dot.textContent = state.running ? String(Math.max(0, Math.ceil(state.remaining / 1000))) : '⏱';
-    ui.dot.title = state.running ? '자동 넘김 중 - 눌러서 펼치기' : '자동 넘김 - 눌러서 펼치기';
-    setPlayIcon(state.running);
-    if (state.running) {
+    var mode = currentMode();
+    var label = mode === 'scroll' ? '자동 스크롤' : '자동 넘김';
+    // 최소화 상태: 멈춰 있으면 ⏱, 넘김 중이면 남은 초, 스크롤 중이면 ↓
+    ui.dot.textContent = !state.running ? '⏱' : (mode === 'scroll' ? '↓' : String(Math.max(0, Math.ceil(state.remaining / 1000))));
+    ui.dot.title = (state.running ? label + ' 중' : label) + ' - 눌러서 펼치기';
+    ui.minus.title = mode === 'scroll' ? '느리게' : '간격 줄이기';
+    ui.plus.title = mode === 'scroll' ? '빠르게' : '간격 늘리기';
+    ui.minus.setAttribute('aria-label', ui.minus.title);
+    ui.plus.setAttribute('aria-label', ui.plus.title);
+    setPlayIcon(state.running, label);
+
+    if (mode === 'scroll') {
+      ui.sec.textContent = '↓ ' + prefs.scrollSpeed + 'px/초';
+      // 진행 막대 = 지금까지 내려온 위치
+      var sc = state.scrollEl;
+      if (state.running && sc && sc.scrollHeight > sc.clientHeight) {
+        ui.bar.hidden = false;
+        var pos = sc.scrollTop / (sc.scrollHeight - sc.clientHeight);
+        ui.barFill.style.width = (Math.max(0, Math.min(1, pos)) * 100).toFixed(1) + '%';
+      } else {
+        ui.bar.hidden = true;
+      }
+    } else if (state.running) {
       var left = Math.max(0, Math.ceil(state.remaining / 1000));
       ui.sec.textContent = left + ' / ' + prefs.seconds + '초';
       ui.bar.hidden = false;
@@ -521,6 +661,7 @@
   setInterval(function () {
     var v = findViewer();
     state.viewerEl = v;
+    if (!state.running) { state.predictedMode = v ? resolveMode() : (prefs.method === 'scroll' ? 'scroll' : 'page'); }
     if (state.running) {
       if (v) { state.sawViewerWhileRunning = true; state.viewerMisses = 0; }
       else if (state.sawViewerWhileRunning) {
@@ -546,7 +687,8 @@
       try { localStorage.setItem(LS_KEY, JSON.stringify(user)); } catch (e) { /* 저장 실패해도 이번 세션엔 적용 */ }
       var wasSeconds = prefs.seconds;
       prefs = buildPrefs();
-      if (state.running && wasSeconds !== prefs.seconds) { state.remaining = prefs.seconds * 1000; }
+      if (state.running && state.mode === 'page' && wasSeconds !== prefs.seconds) { state.remaining = prefs.seconds * 1000; }
+      if (!state.running) { state.predictedMode = state.viewerEl ? resolveMode() : (prefs.method === 'scroll' ? 'scroll' : 'page'); }
       render();
       emit();
       return api.getPrefs();
@@ -566,6 +708,7 @@
         viewerDetected: !!state.viewerEl,
         remainingSec: state.running ? Math.max(0, Math.ceil(state.remaining / 1000)) : null,
         turns: state.turns,
+        mode: state.running ? state.mode : state.predictedMode,
         minimized: minimized,
         progress: state.progress ? JSON.parse(JSON.stringify(state.progress)) : null,
         prefs: api.getPrefs()
