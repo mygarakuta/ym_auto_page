@@ -8,7 +8,7 @@
 (function () {
   'use strict';
 
-  var VERSION = '1.2.0';
+  var VERSION = '1.2.1';
   if (window.YMAutoPage && window.YMAutoPage.version) { return; }
 
   cfg = cfg || {};

@@ -1,14 +1,17 @@
 :host{display:block}
 .wrap{color:var(--app-text-primary,#eef0f4);font-family:inherit}
-.wrap.is-min{display:none}
 .row{display:flex;align-items:center;gap:8px}
 .badge{flex:none;font-size:.75rem;padding:2px 8px;border-radius:999px;border:1px solid var(--app-border,rgba(255,255,255,.2));color:var(--app-text-muted,#9aa3b2)}
 .badge.on{background:var(--app-accent,#8b7cf6);border-color:var(--app-accent,#8b7cf6);color:#fff}
-.hint{flex:1;font-size:.85rem;color:var(--app-text-muted,#9aa3b2)}
-.fold{flex:none;width:24px;height:24px;border:none;border-radius:50%;background:transparent;color:var(--app-text-muted,#9aa3b2);font:inherit;cursor:pointer}
-.fold[hidden]{display:none}
+.hint{flex:1;min-width:0;font-size:.85rem;color:var(--app-text-muted,#9aa3b2)}
+.mini{display:none;flex:1;font-size:.85rem;font-weight:700;font-variant-numeric:tabular-nums}
+.fold{flex:none;width:28px;height:28px;border:none;border-radius:50%;background:transparent;color:var(--app-text-muted,#9aa3b2);font:inherit;font-size:1rem;cursor:pointer}
 .ctl{display:flex;align-items:center;gap:8px;margin-top:10px}
 .ctl button{width:32px;height:32px;border-radius:50%;border:1px solid var(--app-border,rgba(255,255,255,.2));background:transparent;color:inherit;font:inherit;font-size:1.1rem;cursor:pointer}
-.ctl button:hover,.fold:hover{background:var(--app-bg-card-hover,rgba(255,255,255,.08))}
+.ctl button:hover,.fold:hover{background:var(--app-bg-card-hover,rgba(255,255,255,.08));color:var(--app-text-primary,#eef0f4)}
 .sec{min-width:56px;text-align:center;font-size:1.25rem;font-weight:700;font-variant-numeric:tabular-nums}
 button:focus-visible{outline:2px solid var(--app-accent,#8b7cf6);outline-offset:2px}
+
+/* 접힌 상태: [대기] 5초 ▸ 한 줄 */
+.wrap.is-min .hint,.wrap.is-min .ctl{display:none}
+.wrap.is-min .mini{display:block}
